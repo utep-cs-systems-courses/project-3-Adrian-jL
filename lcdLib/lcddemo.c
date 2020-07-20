@@ -14,10 +14,18 @@ main()
   lcd_init();
   u_char width = screenWidth, height = screenHeight;
 
-  clearScreen(COLOR_BLUE);
+  clearScreen(COLOR_NAVY);
 
-  drawString5x7(20,20, "hello", COLOR_GREEN, COLOR_RED);
+  drawString8x12 (10,10,"Howdy", COLOR_WHITE, COLOR_SKY_BLUE);
 
-  fillRectangle(30,30, 60, 60, COLOR_ORANGE);
-  
+  //illRectangle(30,30, 60, 60, COLOR_ORANGE);
+  /*
+  int j;
+  for (j = 0; j < 60; j++){
+    int row = j;
+    for (int col = j; col <= screenWidth + j; col++){
+      drawPixel(row, col, COLOR_PINK);
+    }
+  }
+  */
 }
