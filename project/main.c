@@ -18,7 +18,13 @@ typedef struct MovLayer_s{
   struct MovLayer_s *next;
 } MovLayer;
 
-//TODO: change starting point
+char *scoreText = "0-0";
+u_int switches;
+char scoreOne = 0;
+char scoreTwo = 0;
+u_int bgColor = COLOR_BLACK;
+int redrawScreen = 1;
+
 AbRect paddleOneShape = {abRectGetBounds, abRectCheck, {8, 2}};
 AbRect paddleTwoShape = {abRectGetBounds, abRectCheck, {8, 2}};
 
@@ -70,18 +76,22 @@ void movLayerDraw(MovLayer *movLayers, Layer *layers)
 
 char hitPaddle(Region *ballBounds, Region *paddleOneBounds, Region *paddleTwoBounds)
 {
-  char pOneXValCheck = (ballBounds->topLeft.axes[0] >= paddleOneBounds->topLeft.axes[0] && ballBounds->botRight.axes[0] <= paddleOneBounds->botRight.axes[0]) || (ballBounds->botRight.axes[0] >= paddleOneBounds->botRight.axes[0] && ballBounds->botRight.axes[0] <= paddleOneBounds->botRight.axes[1]);
-  char pOneYValCheck = (ballBounds->topLeft.axes[1] >= paddleOneBounds->topLeft.axes[1] && ballBounds->botRight.axes[1] <= paddleOneBounds->botRight.axes[1]);
+  char pOneXValCheck = (ballBounds->topLeft.axes[0] >= paddleOneBounds->topLeft.axes[0] && ballBounds->topLeft.axes[0] <= paddleOneBounds->botRight.axes[0]) || (ballBounds->botRight.axes[0] >= paddleOneBounds->topLeft.axes[0] && ballBounds->botRight.axes[0] <= paddleOneBounds->botRight.axes[0]);
+  
+  char pOneYValCheck = (ballBounds->topLeft.axes[1] >= paddleOneBounds->topLeft.axes[1] && ballBounds->topLeft.axes[1] <= paddleOneBounds->botRight.axes[1]);
   
     //|| (ballBounds->botRight.axes[1] >= paddleOneBounds->topLeft.axes[1] && ballBounds->botRight.axes[1] <= paddleOneBounds->botRight.axes[1]);
   
-  char pTwoXValCheck = (ballBounds->topLeft.axes[0] >= paddleTwoBounds->topLeft.axes[0] && ballBounds->botRight.axes[0] <= paddleTwoBounds->botRight.axes[0]) || (ballBounds->botRight.axes[0] >= paddleTwoBounds->topLeft.axes[0] && ballBounds->botRight.axes[0] <= paddleTwoBounds->botRight.axes[0]);
-  char pTwoYValCheck = (ballBounds->topLeft.axes[1] >= paddleTwoBounds->topLeft.axes[1] && ballBounds->botRight.axes[1] <= paddleTwoBounds->botRight.axes[1]);
+  char pTwoXValCheck = (ballBounds->topLeft.axes[0] >= paddleTwoBounds->topLeft.axes[0] && ballBounds->topLeft.axes[0] <= paddleTwoBounds->botRight.axes[0]) || (ballBounds->botRight.axes[0] >= paddleTwoBounds->topLeft.axes[0] && ballBounds->botRight.axes[0] <= paddleTwoBounds->botRight.axes[0]);
+
+  char pTwoYValCheck = (ballBounds->botRight.axes[1] >= paddleTwoBounds->topLeft.axes[1] && ballBounds->botRight.axes[1] <= paddleTwoBounds->botRight.axes[1]);
   
     // || (ballBounds->botRight.axes[1] >= paddleTwoBounds->topLeft.axes[1] && ballBounds->botRight.axes[1] <= paddleTwoBounds->botRight.axes[1]);
 
   return (pOneXValCheck && pOneYValCheck) || (pTwoXValCheck && pTwoYValCheck);
 }
+
+char playSound = 0;
 
 //Region fence = {{10,30}, {SHORT_EDGE_PIXELS-10, LONG_EDGE_PIXELS-10}}; /**< Create a fence region */
 
@@ -99,17 +109,22 @@ void ballAdvance(MovLayer *ml)
   vec2Add(&newPos, &ml->layer->posNext, &ml->velocity);
   abShapeGetBounds(ml->layer->abShape, &newPos, &ballBounds);
   Region paddleOneBounds, paddleTwoBounds;
-  layerGetBounds(&paddleOneLayer, &paddleOneBounds);
-  layerGetBounds(&paddleTwoLayer, &paddleTwoBounds);
+  abShapeGetBounds(ml->layer->abShape, &newPos, &ballBounds);
+  abShapeGetBounds(paddleOneLayer.abShape, &paddleOneLayer.pos, &paddleOneBounds);
+  abShapeGetBounds(paddleTwoLayer.abShape, &paddleTwoLayer.pos, &paddleTwoBounds);
+// layerGetBounds(&paddleOneLayer, &paddleOneBounds);
+//  layerGetBounds(&paddleTwoLayer, &paddleTwoBounds);
   
   if (hitPaddle(&ballBounds, &paddleOneBounds, &paddleTwoBounds)){
     int velocity = ml->velocity.axes[1] = -ml->velocity.axes[1];
     newPos.axes[1] += (2 * velocity);
+    playSound = 1;
   }
 
   if ((ballBounds.topLeft.axes[0] <= 0) || (ballBounds.botRight.axes[0] >= 127)){
       int velocity = ml->velocity.axes[0] = -ml->velocity.axes[0];
       newPos.axes[0] += (2 * velocity);
+      playSound = 1;
     }
 
   if (ballBounds.topLeft.axes[1] <= 0){ //Ball reached paddleOne goal, reset ball at top left
@@ -117,11 +132,15 @@ void ballAdvance(MovLayer *ml)
     ml->velocity.axes[1] = 3;
     newPos.axes[0] = 30;
     newPos.axes[1] = 30;
+    ballLayer.color = COLOR_RED;
+    scoreTwo++;
   }else if (ballBounds.botRight.axes[1] >= 159){ //Ball reached paddleTwo goal, reset botright
     ml->velocity.axes[0] = -3;
     ml->velocity.axes[1] = -3;
     newPos.axes[0] = 97;
     newPos.axes[1] = 129;
+    ballLayer.color = COLOR_GREEN;
+    scoreOne += 1;
   }
   ml->layer->posNext = newPos;
 } /**< for ml */
@@ -191,13 +210,6 @@ void movPaddle(char option)
   }
 }
 
-char *scoreText = "0-0";
-u_int switches;
-char scoreOne = 0;
-char scoreTwo = 0;
-u_int bgColor = COLOR_BLACK;
-int redrawScreen = 1;
-
 void getScoreText()
 {
   sprintf(scoreText, "%d-%d", scoreOne, scoreTwo);
@@ -217,7 +229,7 @@ void main()
   or_sr(0x8);
 
   buzzer_init();
-  buzzer_set_period(2500);
+  buzzer_set_period(0);
 
   //scoreText = (char *)malloc(6 * sizeof(char));
   //getScoreText();
@@ -269,7 +281,18 @@ void wdt_c_handler()
     
     count = 0;
     redrawScreen = 1;
+
+    if (playSound){
+      buzzer_set_period(2500);
+      playSound = 0;
+    }else{
+      buzzer_set_period(0);
+    }
+
+    if (scoreOne > 9 || scoreTwo > 9){
+      scoreOne = scoreTwo = 0;
+    }
   } 
-  // P1OUT &= ~GREEN_LED;		   // < Green LED off when cpu off */
+  P1OUT &= ~GREEN_LED;		   // < Green LED off when cpu off */
   /////////////
 }
