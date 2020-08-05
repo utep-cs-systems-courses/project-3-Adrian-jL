@@ -25,9 +25,11 @@ char scoreTwo = 0;
 u_int bgColor = COLOR_BLACK;
 int redrawScreen = 1;
 
+// Create both paddles as Rectangle
 AbRect paddleOneShape = {abRectGetBounds, abRectCheck, {8, 2}};
 AbRect paddleTwoShape = {abRectGetBounds, abRectCheck, {8, 2}};
 
+// Create the Layers for bothe paddles and ball and assign there locations and colors
 Layer paddleOneLayer = {(AbShape*)&paddleOneShape, {6, 5}, {0, 0}, {6, 5}, COLOR_WHITE, 0};
 Layer paddleTwoLayer = {(AbShape*)&paddleTwoShape, {120, 155}, {0, 0}, {120, 155}, COLOR_WHITE,
                         &paddleOneLayer};
@@ -74,19 +76,19 @@ void movLayerDraw(MovLayer *movLayers, Layer *layers)
   } // for moving layer being updated
 }
 
+/* 
+   Will check the x and y value for each paddle and if the ball bounds hits the 
+   paddle bounds
+*/
 char hitPaddle(Region *ballBounds, Region *paddleOneBounds, Region *paddleTwoBounds)
 {
   char pOneXValCheck = (ballBounds->topLeft.axes[0] >= paddleOneBounds->topLeft.axes[0] && ballBounds->topLeft.axes[0] <= paddleOneBounds->botRight.axes[0]) || (ballBounds->botRight.axes[0] >= paddleOneBounds->topLeft.axes[0] && ballBounds->botRight.axes[0] <= paddleOneBounds->botRight.axes[0]);
   
   char pOneYValCheck = (ballBounds->topLeft.axes[1] >= paddleOneBounds->topLeft.axes[1] && ballBounds->topLeft.axes[1] <= paddleOneBounds->botRight.axes[1]);
   
-    //|| (ballBounds->botRight.axes[1] >= paddleOneBounds->topLeft.axes[1] && ballBounds->botRight.axes[1] <= paddleOneBounds->botRight.axes[1]);
-  
   char pTwoXValCheck = (ballBounds->topLeft.axes[0] >= paddleTwoBounds->topLeft.axes[0] && ballBounds->topLeft.axes[0] <= paddleTwoBounds->botRight.axes[0]) || (ballBounds->botRight.axes[0] >= paddleTwoBounds->topLeft.axes[0] && ballBounds->botRight.axes[0] <= paddleTwoBounds->botRight.axes[0]);
 
   char pTwoYValCheck = (ballBounds->botRight.axes[1] >= paddleTwoBounds->topLeft.axes[1] && ballBounds->botRight.axes[1] <= paddleTwoBounds->botRight.axes[1]);
-  
-    // || (ballBounds->botRight.axes[1] >= paddleTwoBounds->topLeft.axes[1] && ballBounds->botRight.axes[1] <= paddleTwoBounds->botRight.axes[1]);
 
   return (pOneXValCheck && pOneYValCheck) || (pTwoXValCheck && pTwoYValCheck);
 }
@@ -112,29 +114,29 @@ void ballAdvance(MovLayer *ml)
   abShapeGetBounds(ml->layer->abShape, &newPos, &ballBounds);
   abShapeGetBounds(paddleOneLayer.abShape, &paddleOneLayer.pos, &paddleOneBounds);
   abShapeGetBounds(paddleTwoLayer.abShape, &paddleTwoLayer.pos, &paddleTwoBounds);
-// layerGetBounds(&paddleOneLayer, &paddleOneBounds);
-//  layerGetBounds(&paddleTwoLayer, &paddleTwoBounds);
-  
+
+  // Check if the ball hits a paddle; if it does, bounce to new direction
   if (hitPaddle(&ballBounds, &paddleOneBounds, &paddleTwoBounds)){
     int velocity = ml->velocity.axes[1] = -ml->velocity.axes[1];
     newPos.axes[1] += (2 * velocity);
     playSound = 1;
   }
-
+  // Check if the ball hits either side walls; if it does, bounce to new direction
   if ((ballBounds.topLeft.axes[0] <= 0) || (ballBounds.botRight.axes[0] >= 127)){
       int velocity = ml->velocity.axes[0] = -ml->velocity.axes[0];
       newPos.axes[0] += (2 * velocity);
       playSound = 1;
     }
-
-  if (ballBounds.topLeft.axes[1] <= 0){ //Ball reached paddleOne goal, reset ball at top left
+  // Ball reached paddleOne goal, reset ball at top left change color
+  if (ballBounds.topLeft.axes[1] <= 0){
     ml->velocity.axes[0] = 3;
     ml->velocity.axes[1] = 3;
     newPos.axes[0] = 30;
     newPos.axes[1] = 30;
     ballLayer.color = COLOR_RED;
     scoreTwo++;
-  }else if (ballBounds.botRight.axes[1] >= 159){ //Ball reached paddleTwo goal, reset botright
+  // Ball reached paddleTwo goal, reset botright and change color  
+  }else if (ballBounds.botRight.axes[1] >= 159){ 
     ml->velocity.axes[0] = -3;
     ml->velocity.axes[1] = -3;
     newPos.axes[0] = 97;
@@ -143,33 +145,7 @@ void ballAdvance(MovLayer *ml)
     scoreOne += 1;
   }
   ml->layer->posNext = newPos;
-} /**< for ml */
-  
-  /*
-  Vec2 newPos;
-  u_char axis;
-  Region shapeBoundary;
-  for (; ml; ml = ml->next) {
-    vec2Add(&newPos, &ml->layer->posNext, &ml->velocity);
-    abShapeGetBounds(ml->layer->abShape, &newPos, &shapeBoundary);
-    
-    if ((shapeBoundary.topLeft.axes[0] <= 0) || (shapeBoundary.botRight.axes[0] >= 127)){
-      int velocity = ml->velocity.axes[axis] = -ml->velocity.axes[axis];
-      newPos.axes[0] += (2*velocity);
-    }
-    if (shapeBoundary.topLeft.axes[1] <= 0){
-      ml->velocity.axes[0] = 3;
-      ml->velocity.axes[1] = 3;
-      newPos.axes[0] = 30;
-      newPos.axes[1] = 30;
-    }else if (shapeBoundary.botRight.axes[1] >= 159){
-      ml->velocity.axes[0] = -3;
-      ml->velocity.axes[1] = -3;
-      newPos.axes[0] = 97;
-      newPos.axes[1] = 129;
-    }
-    ml->layer->posNext = newPos;
-  } /**< for ml */
+}
 
 void movPaddleLeft(Layer *paddleLayer)
 {
@@ -212,6 +188,7 @@ void movPaddle(char option)
 
 void getScoreText()
 {
+  //TODO: Update Scores and uncomment function in main
   sprintf(scoreText, "%d-%d", scoreOne, scoreTwo);
 }
 
@@ -231,8 +208,6 @@ void main()
   buzzer_init();
   buzzer_set_period(0);
 
-  //scoreText = (char *)malloc(6 * sizeof(char));
-  //getScoreText();
   drawString8x12(50, 75, scoreText, COLOR_WHITE, COLOR_BLACK);
    
   while(1){
@@ -241,7 +216,7 @@ void main()
     }
     redrawScreen = 0;
     movLayerDraw(&ball, &ballLayer);
-    //getScoreText();
+
     drawString8x12(50, 75, scoreText, COLOR_WHITE, COLOR_BLACK);
   
     for (int row = 1; row < 30; row++){
@@ -257,15 +232,14 @@ void main()
 void wdt_c_handler()
 {
   static short count = 0;
-  // P1OUT |= GREEN_LED;		    //  < Green LED on when cpu on 
+  P1OUT |= GREEN_LED;		    //  < Green LED on when cpu on 
   count ++;
   if (count == 15) {
-    ballAdvance(&ball);
-    // if (p2sw_read())
-    // redrawScreen = 1;
     
+    ballAdvance(&ball);
     switches = p2sw_read();
-
+    
+    // Move respective paddle when the switch is pressed down; NOT when held down.
     if (switches & 0x0100 && switches & 0x01){
       movPaddle(1);
     }
@@ -294,5 +268,4 @@ void wdt_c_handler()
     }
   } 
   P1OUT &= ~GREEN_LED;		   // < Green LED off when cpu off */
-  /////////////
 }
